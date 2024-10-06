@@ -1,10 +1,9 @@
-import puppeteer, { Browser, CDPSession, Page } from 'puppeteer';
+import puppeteer, { Page } from 'puppeteer';
 import readline from 'readline';
-import { existsSync, stat } from 'fs';
 
 const MAX_RETRIES = 5;
 const URL = 'https://moviesmod.day/';
-const DOWNLOAD_PATH = '/home/quent/movies';
+const DOWNLOAD_PATH = './movies';
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -40,12 +39,20 @@ const searchMovie = async (page: Page, userMovie: string) => {
   });
 
   if (movies.length === 0) {
-    throw new Error('No movies found\nedf');
+    throw new Error('No movies found\n');
   }
   return movies;
 };
 
-const searchDownloadLink = async (page: Page, headingTag: string = 'h4') => {
+interface searchDownloadLinkType {
+  downloadLinks: string;
+  downloadQuality: string;
+}
+
+const searchDownloadLink = async (
+  page: Page,
+  headingTag: string = 'h4'
+): Promise<searchDownloadLinkType[]> => {
   let downloadLink = await page.evaluate((tag) => {
     const downloadHeading = document.querySelectorAll(tag);
     return Array.from(downloadHeading).map((d) => {
@@ -129,6 +136,8 @@ const downloadMovie = async (page: Page) => {
   });
 
   await page.goto(fastServer, { waitUntil: 'networkidle0' });
+  console.log(' - fast server(google drive) page passed');
+
   const verificationPage = await page.evaluate(() => {
     const form = document.querySelector('#landing') as HTMLFormElement;
     return form.submit();
@@ -151,13 +160,15 @@ const downloadMovie = async (page: Page) => {
     waitUntil: 'networkidle0',
   });
 
+  console.log(' - verification page passed');
+
   let downloadButton = await checkButton(page, 'Instant');
   // this is for resume cloud
   if (downloadButton.length === 0) {
     downloadButton = await checkButton(page, 'Cloud');
     await page.goto(downloadButton[0], { waitUntil: 'networkidle0' });
 
-    console.log('button found');
+    console.log(' - button found');
 
     await page.click('.btn-success');
     await downloadPage(page);
@@ -181,7 +192,7 @@ const downloadMovie = async (page: Page) => {
       }
 
       page.browser().off('targetCreated', newTabPromise);
-      console.log('button found');
+      console.log(' - button found');
     } else {
       console.log('Button not found');
     }
@@ -232,7 +243,7 @@ const downloadPage = async (page: Page) => {
         clearInterval(intervalId);
         resolve();
       } else {
-        console.log(details);
+        process.stdout.write(`${details?.trim()}   \r`);
       }
     };
 
@@ -266,15 +277,15 @@ const main = async (retires = 0) => {
     });
 
     await downloadMovie(page);
-    console.log('Done ma');
+    console.log(`Done ma. Movie in ${DOWNLOAD_PATH}`);
     await browser.close();
   } catch (err) {
     console.log('Error:', err instanceof Error ? err.message : err);
+    console.log('\nRetrying...');
 
     if (retires < MAX_RETRIES) {
       await main(retires + 1);
     }
-    console.log('\nRetrying...');
   } finally {
     rl.close();
   }
