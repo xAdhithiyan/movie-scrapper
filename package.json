@@ -1,0 +1,21 @@
+{
+  "name": "movie-scrapper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "script.js",
+  "scripts": {
+    "dev": "tsc --w & nodemon script.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.7",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0"
+  },
+  "dependencies": {
+    "@types/puppeteer": "^5.4.7",
+    "puppeteer": "^23.5.0"
+  }
+}
